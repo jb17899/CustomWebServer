@@ -1,0 +1,30 @@
+{
+  "name": "y",
+  "version": "1.0.0",
+  "description": "Custom Web Server",
+  "main": "TCP_echo/main.ts",
+  "scripts": {
+    "start": "ts-node-esm TCP_echo/main.ts",
+    "test": "npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jb17899/CustomWebServer.git"
+  },
+  "keywords": [
+    "vas"
+  ],
+  "author": "Bharat Kumar Sharma",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jb17899/CustomWebServer/issues"
+  },
+  "homepage": "https://github.com/jb17899/CustomWebServer#readme",
+  "dependencies": {
+    "net": "^1.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.1",
+    "ts-node": "^10.9.2"
+  }
+}
