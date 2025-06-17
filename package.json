@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "Custom Web Server",
   "main": "TCP_echo/main.ts",
+  "type": "module",
   "scripts": {
-    "start": "ts-node-esm TCP_echo/main.ts",
+    "start": "npx tsx TCP_echo/main.ts",
     "test": "npm run dev"
   },
   "repository": {
@@ -21,7 +22,8 @@
   },
   "homepage": "https://github.com/jb17899/CustomWebServer#readme",
   "dependencies": {
-    "net": "^1.0.2"
+    "net": "^1.0.2",
+    "tsx": "^4.20.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.1",
