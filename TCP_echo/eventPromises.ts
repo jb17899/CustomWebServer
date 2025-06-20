@@ -1,5 +1,5 @@
 import * as net from 'net';
-type TCPconn = {
+export type TCPconn = {
     socket:net.Socket;
     reader:null|{
         resolve:(value:Buffer)=>void,

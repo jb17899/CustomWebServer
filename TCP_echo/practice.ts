@@ -1,10 +1,10 @@
 import * as net from 'net';
 import * as eventPromise from './eventPromises';
-type DynBuf = {
+export type DynBuf = {
     buffer:Buffer,
     length:number
 };
-function pushBuffer(dynBuf:DynBuf,data:Buffer):void{
+export function pushBuffer(dynBuf:DynBuf,data:Buffer):void{
     const newLen = dynBuf.length+data.length;
     if(newLen>dynBuf.buffer.length){
         let cap = Math.max(dynBuf.buffer.length,32);
@@ -52,7 +52,7 @@ function cutMessage(dynBuf:DynBuf):null|Buffer{
     BufPop(dynBuf,idx+1);
     return newBuf;
 }
-function BufPop(buf:DynBuf,len:number):void{                   //fix O(n2)behaviour
+export function BufPop(buf:DynBuf,len:number):void{                   //fix O(n2)behaviour
     buf.buffer.copyWithin(0,len,buf.length);
     buf.length-=len;
 }
