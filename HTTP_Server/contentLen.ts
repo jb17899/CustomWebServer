@@ -68,7 +68,6 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
             }
             continue;
         }
-        console.log(msg);
         const bodyReq:bodyType = getHttpBody(conn,buf,msg);
         const res:httpRes = await handleReq(msg,bodyReq);
         await httpWrite(conn,res);
@@ -173,12 +172,23 @@ function cutMessage(buf:practice.DynBuf):null|httpReq{
 }
 function parseHttpReq(buf:Buffer):httpReq{
     const lines:Buffer[] = parseLines(buf);
-    const [method,uri,version] = parseReqLine(lines[0]);
+    console.log(buf.length);
+    let idx = 0,index=-1;
+    for(;idx<lines.length;idx++){
+        if(lines[idx].length>0){
+            index = idx;
+            break;
+        }
+    }
+    if(index == -1){
+        throw new Error("Fields are all empty.....");
+    }
+    const [method,uri,version] = parseReqLine(lines[index]);
     var headers:Buffer[] = [];
-    for(let i = 1;i<lines.length-1;i++){
+    for(let i = index+1;i<lines.length-1;i++){
         let h = Buffer.from(lines[i]);
         if(!validateHeader(h)){
-            throw new HTTPError(400,'Bad field');
+            throw new HTTPError(400,'Header field could not be validated......');
         }
         headers.push(h);
     }
@@ -199,8 +209,9 @@ function parseReqLine(line:Buffer):[string,Buffer,string]{
 function parseLines(buf:Buffer):Buffer[]{
     const linedBuf:Buffer[] = [];
     var idx = 0;var val =0;
+
     while((val=buf.subarray(idx,buf.length).indexOf(Buffer.from('\r\n')))>=0){
-        linedBuf.push(buf.subarray(idx,idx+val));
+        linedBuf.push(Buffer.from(buf.subarray(idx,idx+val)));
         idx = idx+val+2;
     }
     return linedBuf;
@@ -224,6 +235,7 @@ function parseDec(val:string):number{
 }
 function fieldGet(header:Buffer[],val:string):null|Buffer{
     var vals:Buffer = Buffer.from(val);
+
     for(let c of header){
         var idx = c.indexOf(':');
         if(idx<0){
@@ -240,24 +252,20 @@ function fieldGet(header:Buffer[],val:string):null|Buffer{
 function getHttpBody(conn:eventPromise.TCPconn,buf:practice.DynBuf,req:httpReq):bodyType{
     let bodyLen:number = -1;
     const contentLen:null|Buffer = fieldGet(req.headers,'Content-Length');
-    console.log(contentLen?.toString());
     if(contentLen){
         bodyLen = parseDec(contentLen.toString('latin1'));
         if(isNaN(bodyLen)){
             throw new HTTPError(400,'Bad content Length');
         }
     }
-    console.log(13);
 
     const bodyAllowed = !(req.method == "GET"||req.method == 'HEAD');
-    console.log(16);
     const te = fieldGet(req.headers, "Transfer-Encoding");
 const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
-    console.log(chunked);
+
     if(!bodyAllowed&&(bodyLen>0||chunked)){
         throw new HTTPError(400,'Http Body not allowed..........');
     }
-    console.log(12);
     if(bodyLen>=0){
         return readerFromConnLen(conn,buf,bodyLen);
     }
@@ -269,7 +277,6 @@ const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
     }
 }
 function readerFromConnLen(conn:eventPromise.TCPconn,buf:practice.DynBuf,bodyLen:number):bodyType{
-    console.log(11);
     return {
         len:bodyLen,
         read:async():Promise<Buffer>=>{
