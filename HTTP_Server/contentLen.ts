@@ -13,7 +13,7 @@ type httpRes = {
     headers:Buffer[],
     body:bodyType
 };
-type bodyType = {
+export type bodyType = {
     len:number,
     read:()=>Promise<Buffer>
 };
@@ -25,7 +25,29 @@ class Err extends Error{
         this.code = code;
     }
 }
+type bufferGen = AsyncGenerator<Buffer,void,void>
 
+async function *countSheep():bufferGen{
+    for(let c=0;c<10;c++){
+        await new Promise((resolve)=>{setTimeout(resolve,1)});
+        yield  Buffer.from(`${c*100}\n`);
+    }
+}
+function readerFromGen(gen:bufferGen):bodyType{
+    return {
+        len:-1,
+        read:async():Promise<Buffer>=>{
+            const r = await gen.next();
+            if(r.done){
+                return Buffer.from('');
+            }
+            else{
+                console.assert(r.value.length>0);
+                return r.value;
+            }
+        }
+    };
+}
 async function newConn(socket:net.Socket):Promise<void>{
     const conn = eventPromise.soInit(socket);
     try{
@@ -97,7 +119,7 @@ async function handleReq(req:httpReq,httpBody:bodyType):Promise<httpRes>{
     let resp:bodyType;
     switch (req.uri.toString('latin1')) {
         case '/echo':
-            resp = httpBody;
+            resp = readerFromGen(countSheep());
             break;
     
         default:
@@ -111,18 +133,24 @@ async function handleReq(req:httpReq,httpBody:bodyType):Promise<httpRes>{
     };
 }
 async function httpWrite(conn:eventPromise.TCPconn,res:httpRes):Promise<void>{
-    if(res.body.len === 0){
-        throw new Error("TODO:chunked encoding");
+    if(res.body.len<0){
+        res.headers.push(Buffer.from('Transfer-Encoding:chunked'));
     }
-    console.assert(!fieldGet(res.headers,'Content-Length'));
-    res.headers.push(Buffer.from(`Content-Length:${res.body.len}`));
+    else{
+        res.headers.push(Buffer.from(`Content-Length:${res.body.len}`));
+    }
     await eventPromise.soWrite(conn,encodeHTTPRes(res));
-    while(true){
-        const data:Buffer = await res.body.read();
-        if(data.length === 0){
-            break;
+    const crlf = Buffer.from('\r\n');
+    for(let last = false;!last;){
+        let data = await res.body.read();
+        console.log(data.toString());
+        last = (data.length === 0);
+        if(res.body.len < 0 ){
+            data = Buffer.concat([Buffer.from(data.length.toString(16)),crlf,data,crlf]);
         }
-        await eventPromise.soWrite(conn,data);
+        if(data.length){
+            await eventPromise.soWrite(conn,data);
+        }
     }
 }
 function encodeHTTPRes(res: httpRes): Buffer {
@@ -172,7 +200,7 @@ function cutMessage(buf:practice.DynBuf):null|httpReq{
 }
 function parseHttpReq(buf:Buffer):httpReq{
     const lines:Buffer[] = parseLines(buf);
-    console.log(buf.length);
+    console.log(buf.length)
     let idx = 0,index=-1;
     for(;idx<lines.length;idx++){
         if(lines[idx].length>0){
@@ -270,11 +298,39 @@ const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
         return readerFromConnLen(conn,buf,bodyLen);
     }
     else if(chunked){
-        throw new HTTPError(501,'TODO');
+        return readerFromGen(readChunks(conn,buf));
     }
     else{
         throw new HTTPError(501,'TODO');
     }
+}
+async function *readChunks(conn:eventPromise.TCPconn,buf:practice.DynBuf):bufferGen{
+    for(let last = false;!last;){
+        let idx = buf.buffer.subarray(0,buf.length).indexOf('\r\n');
+        if(idx<0){
+            return;
+        }
+        let remain = parseInt(buf.buffer.subarray(0,idx).toString('latin1'));
+        practice.BufPop(buf,idx+2);
+        last = (remain == 0);
+        while(remain>0){
+            if(buf.length == 0){
+                const data = await eventPromise.soRead(conn);
+                practice.pushBuffer(buf,data);
+                if(buf.length == 0){
+                    throw new Error("Unexpected EOF.....");
+                }
+            }
+            const consume = Math.min(remain, buf.length);
+            const data = Buffer.from(buf.buffer.subarray(0, consume));
+            practice.BufPop(buf, consume);
+            remain -= consume;
+            yield data;
+        }
+
+
+    }
+
 }
 function readerFromConnLen(conn:eventPromise.TCPconn,buf:practice.DynBuf,bodyLen:number):bodyType{
     return {
