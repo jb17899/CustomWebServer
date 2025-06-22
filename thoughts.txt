@@ -21,3 +21,5 @@ to remember it is a stream not a packet.could implement about websocket.research
 2.backpressure.
 sender knows the amount of data that client buffer can take.sends that amount of data,then stops.after client uses it send to server about it.
 3.Producer Consumer Problem
+POOLED BUFFERS
+can use pooled buffers for this.Large pool that contains buffers,when need to use them,take from it ,only if pool is empty,use it.

@@ -48,10 +48,11 @@ export async function serverStaticFile(path:string):Promise<contentLen.httpRes>{
 }
 async function readerFromStaticFile(fp:fs.FileHandle,size:number):Promise<contentLen.bodyType>{
     let got = 0;
+    const buf = Buffer.allocUnsafe(65536);
     return {
         len:size,
         read:async():Promise<Buffer>=>{
-            const r:fs.FileReadResult<Buffer> = await fp.read();
+            const r = await fp.read({buffer:buf});
             got+=r.bytesRead;
             if(got>size || (got<size&&r.bytesRead == 0)){
                 throw new Error("file size changed abandon it....");
