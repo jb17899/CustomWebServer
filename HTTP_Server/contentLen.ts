@@ -4,6 +4,7 @@ import * as practice from '../TCP_echo/practice';
 import path from 'path';
 import dotenv from "dotenv";
 import { serverStaticFile } from './fileHandling';
+import * as ranged from './ranged';
 
 dotenv.config();
 
