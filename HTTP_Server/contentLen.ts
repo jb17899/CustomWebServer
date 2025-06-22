@@ -1,21 +1,27 @@
 import * as net from 'net';
 import * as eventPromise from '../TCP_echo/eventPromises';
 import * as practice from '../TCP_echo/practice';
+import path from 'path';
+import dotenv from "dotenv";
+import { serverStaticFile } from './fileHandling';
 
-type httpReq = {
+dotenv.config();
+
+export type httpReq = {
     method:string,
     uri:Buffer,               //no guarenttee that they must be ascii or utf-8 string
     version:string,
     headers:Buffer[]
 };
-type httpRes = {
+export type httpRes = {
     code:number,
     headers:Buffer[],
     body:bodyType
 };
 export type bodyType = {
     len:number,
-    read:()=>Promise<Buffer>
+    read:()=>Promise<Buffer>,
+    close:()=>Promise<void>
 };
 class Err extends Error{
     code:number;
@@ -27,11 +33,18 @@ class Err extends Error{
 }
 type bufferGen = AsyncGenerator<Buffer,void,void>
 
-async function *countSheep():bufferGen{
+async function *countSheep():bufferGen{                              //implement freeing memory from here instead of GC.Could use return block to trigger finally block.
+    try{
     for(let c=0;c<10;c++){
         await new Promise((resolve)=>{setTimeout(resolve,1)});
         yield  Buffer.from(`${c*100}\n`);
     }
+}
+//finally will not work in this case as using yield.so try using return.maybe will trigger finally.
+finally{
+    console.log("cleanup");                                           
+}
+
 }
 function readerFromGen(gen:bufferGen):bodyType{
     return {
@@ -45,6 +58,9 @@ function readerFromGen(gen:bufferGen):bodyType{
                 console.assert(r.value.length>0);
                 return r.value;
             }
+        },
+        close:async()=>{
+            console.log("not needed");
         }
     };
 }
@@ -70,7 +86,7 @@ async function newConn(socket:net.Socket):Promise<void>{
         socket.destroy();
     }
 }
-function HTTPError(code:number,message:string){
+export function HTTPError(code:number,message:string){
     const err = new Err(message,code);
     throw err;
 }
@@ -92,11 +108,15 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
         }
         const bodyReq:bodyType = getHttpBody(conn,buf,msg);
         const res:httpRes = await handleReq(msg,bodyReq);
+        try{
         await httpWrite(conn,res);
         if(msg.version == '1.0'){
             return;
         }
         while ((await bodyReq.read()).length > 0) {}
+        }finally{
+            res.body.close?.();
+        }
 
     }
 }
@@ -112,19 +132,31 @@ function readerFromMemory(buf:Buffer):bodyType{
                 done = true;
                 return buf;
             }
+        },
+        close:async():Promise<void>=>{
+            console.log("vals");
         }
     };
 }
 async function handleReq(req:httpReq,httpBody:bodyType):Promise<httpRes>{
-    let resp:bodyType;
-    switch (req.uri.toString('latin1')) {
-        case '/echo':
-            resp = readerFromGen(countSheep());
-            break;
-    
-        default:
-            resp = readerFromMemory(Buffer.from('Hello World.\n'));
-            break;
+    let resp:bodyType = readerFromMemory(Buffer.from("")); // Default empty body
+    const uri = req.uri.toString('latin1');
+    if(uri == '/echo'){
+        resp = readerFromGen(countSheep());
+    }
+    else{
+        if(uri.startsWith("../")){
+            throw new Error("Directory traversal attempt");
+        }
+        let paths =process.env.HOME_DIRECTORY+path.dirname(uri);
+        if(uri == '/hell'){
+            let val = "val.html";
+            paths+=val;
+        }
+        else{
+            throw new Error("blocked");
+        }
+        return serverStaticFile(paths);
     }
     return {
         code:200,
@@ -143,7 +175,6 @@ async function httpWrite(conn:eventPromise.TCPconn,res:httpRes):Promise<void>{
     const crlf = Buffer.from('\r\n');
     for(let last = false;!last;){
         let data = await res.body.read();
-        console.log(data.toString());
         last = (data.length === 0);
         if(res.body.len < 0 ){
             data = Buffer.concat([Buffer.from(data.length.toString(16)),crlf,data,crlf]);
@@ -200,7 +231,6 @@ function cutMessage(buf:practice.DynBuf):null|httpReq{
 }
 function parseHttpReq(buf:Buffer):httpReq{
     const lines:Buffer[] = parseLines(buf);
-    console.log(buf.length)
     let idx = 0,index=-1;
     for(;idx<lines.length;idx++){
         if(lines[idx].length>0){
@@ -351,6 +381,9 @@ function readerFromConnLen(conn:eventPromise.TCPconn,buf:practice.DynBuf,bodyLen
             const data = Buffer.from(buf.buffer.subarray(0,consume));
             practice.BufPop(buf,consume);
             return data;
+        },
+        close:async():Promise<void>=>{
+            console.log(98);
         }
     }
 }

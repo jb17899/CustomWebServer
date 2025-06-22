@@ -1,0 +1,23 @@
+JS is single threader lang.Cannot use blocking IO.
+Callbacks and Promises implemented here.Promises->resolve,reject.If function succeed resolve,else reject.runtime still has control.after resolved control back to function block.
+await write used.WHY??
+ans->so that there is no infinite condition.client keeps sending message to its read to server.server still contain memory of writes left yet.infinite memory pretty soon.
+chunked-tranfer->no response length.
+GET,POST,PATCH,DEL
+Problem->how to send gaps in elements.http uses CRLF(\r\n).for empty line.(\r\n\r\n)
+Problem->Producer consumer problem.if(its empty dont take from buffer.)use generator for producer consumer.
+what are generator->can yield multiple times.that is return multiple times.
+
+
+
+TODO
+POPBuffer->find a O(N) solution instead of N^2
+
+1.pipelining:
+send multiple req at once.could implement some sort of buffer that will contain the entire value of first request and some part of second,could contain entire second.
+after getting first request could move the remaining data in buffer to front.in the next iteration,as buffer data is remiaining,read will work again,because size is not zero,
+will trigger the handlehttp again.
+to remember it is a stream not a packet.could implement about websocket.research on them.
+2.backpressure.
+sender knows the amount of data that client buffer can take.sends that amount of data,then stops.after client uses it send to server about it.
+3.Producer Consumer Problem
