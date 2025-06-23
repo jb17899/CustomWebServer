@@ -1,31 +1,62 @@
-export type HttpRange = [number , number|null]|number;
+import * as fs from 'fs/promises';
+import * as contentLen from './contentLen';
+export type HttpRange = [number, number | null] | number;
 
-
-function parseByteRanges(buf:null|Buffer[]):HttpRange[]{
-    if(buf===null){
+export function parseByteRanges(buf: null | Buffer[]): HttpRange[] {
+    if (buf === null) {
         throw new Error("empty header field...");
     }
-    let htRange:HttpRange[] = [];let val:Buffer = Buffer.from("Content-Range");
-    let ansVal:Buffer = Buffer.alloc(0);
-    for(let c of buf){
-        if(c.subarray(0,val.length).equals(val)){
-            ansVal = c.subarray(val.length+1);
+
+    const prefix = "Content-Range:";
+    let ansVal = "";
+
+    for (const c of buf) {
+        const str = c.toString("latin1"); 
+        if (str.startsWith(prefix)) {
+            ansVal = str.slice(prefix.length).trim();
             break;
         }
     }
-    let st = 0;let ansm:Buffer[] = [];
-    for(let idx=0;idx<ansVal.length;idx++){
-        if(ansVal[idx] == 32){
-            ansm.push(ansVal.subarray(st,idx));
-            console.log(ansVal.subarray(st,idx).toString());
-            st = idx;
+
+    if (!ansVal) {
+        throw new Error("Content-Range header not found.");
+    }
+
+    const parts = ansVal.split(/\s+/);
+    const htRange: HttpRange[] = [];
+
+    for (const part of parts) {
+        if (part.includes("-")) {
+            const [startStr, endStr] = part.split("-");
+            const start = Number(startStr);
+            const end = endStr === "" ? null : Number(endStr);
+            if (isNaN(start)) throw new Error(`Invalid start value in range: ${part}`);
+            htRange.push(end === null || isNaN(end) ? [start, null] : [start, end]);
+        } else {
+            const num = Number(part);
+            if (isNaN(num)) throw new Error(`Invalid number in range: ${part}`);
+            htRange.push(num);
         }
     }
 
     return htRange;
-} 
-let testVal:Buffer[] = [];
-for(let c = 0;c<5;c++){
-    testVal.push(Buffer.from("Content-Range:12-16 13-14"));
 }
-let ans = parseByteRanges(testVal);
+export async function readerFromStaticFile(fp:fs.FileHandle,start:number,end:number):Promise<contentLen.bodyType>{
+    let got = 0;
+    const buf = Buffer.allocUnsafe(65536);
+    return {
+        len:end - start,
+        read:async():Promise<Buffer>=>{
+            const maxRead = Math.min(buf.length,end - start);
+            const r = await fp.read({buffer:buf,position:start,length:maxRead});
+            got+=r.bytesRead;
+            if(got>maxRead || (got<maxRead&&r.bytesRead == 0)){
+                throw new Error("file size changed abandon it....");
+            }
+            return r.buffer.subarray(0,r.bytesRead);
+        },
+        close:async():Promise<void>=>{
+            await fp.close();
+        }
+    };
+}

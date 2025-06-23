@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as contentLen from "./contentLen"
+import * as range from "./ranged";
 // interfaces used.
 // interface fileResult{
 //     bytesRead:number;
@@ -21,16 +22,36 @@ import * as contentLen from "./contentLen"
 //     close():Promise<void>,
 //     stat():Promise<fileStats>
 // };
-export async function serverStaticFile(path:string):Promise<contentLen.httpRes>{
+export async function serverStaticFile(path:string,ranged:boolean,headers:Buffer[]):Promise<contentLen.httpRes>{
     let fp:null|fs.FileHandle = null;
     try{
+        let httpBody: contentLen.bodyType | undefined = undefined;
         fp = await fs.open(path,'r');
         const stat = await fp.stat();
         if(!stat.isFile()){
             throw new contentLen.HTTPError(404,"not a regular file");
         }
         const size = stat.size;
-        const httpBody:contentLen.bodyType = await readerFromStaticFile(fp,size);
+        if(ranged){
+            const val:range.HttpRange[] = range.parseByteRanges(headers);
+            for(let c of val){
+                const start = c[0];
+                let end = c[1];
+                if(end === null){
+                    end = size;
+                }
+                console.log(start,end);
+                httpBody = await range.readerFromStaticFile(fp,start,end);
+                break;
+            }
+        }
+        else{
+            console.log(1);
+            httpBody = await readerFromStaticFile(fp,size);
+        }
+        if (!httpBody) {
+            throw new contentLen.HTTPError(416, "No valid range or file to serve");
+        }
         fp = null;
         return {
             code:200,

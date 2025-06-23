@@ -4,10 +4,10 @@ import * as practice from '../TCP_echo/practice';
 import path from 'path';
 import dotenv from "dotenv";
 import { serverStaticFile } from './fileHandling';
-import * as ranged from './ranged';
 
 dotenv.config();
 
+let ranged:boolean = false;
 export type httpReq = {
     method:string,
     uri:Buffer,               //no guarenttee that they must be ascii or utf-8 string
@@ -157,7 +157,7 @@ async function handleReq(req:httpReq,httpBody:bodyType):Promise<httpRes>{
         else{
             throw new Error("blocked");
         }
-        return serverStaticFile(paths);
+        return serverStaticFile(paths,ranged,req.headers);
     }
     return {
         code:200,
@@ -244,10 +244,16 @@ function parseHttpReq(buf:Buffer):httpReq{
     }
     const [method,uri,version] = parseReqLine(lines[index]);
     var headers:Buffer[] = [];
+    const prefix:Buffer = Buffer.from("Content-Range");let len = prefix.length;
     for(let i = index+1;i<lines.length-1;i++){
         let h = Buffer.from(lines[i]);
+
+
         if(!validateHeader(h)){
             throw new HTTPError(400,'Header field could not be validated......');
+        }
+        if(h.subarray(0,len).equals(prefix)){
+            ranged = true;
         }
         headers.push(h);
     }
