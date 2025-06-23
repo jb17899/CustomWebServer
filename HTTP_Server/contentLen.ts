@@ -107,6 +107,7 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
             }
             continue;
         }
+        console.log(msg.headers.toString());
         const bodyReq:bodyType = getHttpBody(conn,buf,msg);
         const res:httpRes = await handleReq(msg,bodyReq);
         try{
@@ -114,11 +115,12 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
         if(msg.version == '1.0'){
             return;
         }
+
+        await res.body.close();
         while ((await bodyReq.read()).length > 0) {}
         }finally{
             res.body.close?.();
         }
-
     }
 }
 function readerFromMemory(buf:Buffer):bodyType{

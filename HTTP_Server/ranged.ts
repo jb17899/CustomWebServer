@@ -17,7 +17,6 @@ export function parseByteRanges(buf: null | Buffer[]): HttpRange[] {
             break;
         }
     }
-
     if (!ansVal) {
         throw new Error("Content-Range header not found.");
     }
@@ -38,24 +37,29 @@ export function parseByteRanges(buf: null | Buffer[]): HttpRange[] {
             htRange.push(num);
         }
     }
-
     return htRange;
 }
 export async function readerFromStaticFile(fp:fs.FileHandle,start:number,end:number):Promise<contentLen.bodyType>{
     let got = 0;
     const buf = Buffer.allocUnsafe(65536);
     return {
-        len:end - start,
+        len:end - start ,
         read:async():Promise<Buffer>=>{
-            const maxRead = Math.min(buf.length,end - start);
+            const remaining = end - start;
+            if (remaining <= 0) {
+                return Buffer.alloc(0);
+            }
+            const maxRead = Math.min(buf.length, remaining);
             const r = await fp.read({buffer:buf,position:start,length:maxRead});
-            got+=r.bytesRead;
-            if(got>maxRead || (got<maxRead&&r.bytesRead == 0)){
+            got += r.bytesRead;
+            start += r.bytesRead;
+            if (got > (end - start + r.bytesRead) || (got < (end - start + r.bytesRead) && r.bytesRead === 0)) {
                 throw new Error("file size changed abandon it....");
             }
-            return r.buffer.subarray(0,r.bytesRead);
+            return r.buffer.subarray(0, r.bytesRead);
         },
         close:async():Promise<void>=>{
+            got = 0;
             await fp.close();
         }
     };

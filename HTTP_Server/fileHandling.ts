@@ -44,6 +44,7 @@ export async function serverStaticFile(path:string,ranged:boolean,headers:Buffer
                 httpBody = await range.readerFromStaticFile(fp,start,end);
                 break;
             }
+            
         }
         else{
             console.log(1);
