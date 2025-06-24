@@ -340,6 +340,11 @@ const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
         return readerFromGen(readChunks(conn,buf));
     }
     else{
+        // if(!bodyAllowed){
+        //     if(req.method == "HEAD"){
+
+        //     }
+        // }
         throw new HTTPError(501,'TODO');
     }
 }
