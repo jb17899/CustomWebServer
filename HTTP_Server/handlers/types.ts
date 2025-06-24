@@ -1,0 +1,28 @@
+type httpReq = {
+    method:string,
+    uri:Buffer,               //no guarenttee that they must be ascii or utf-8 string
+    version:string,
+    headers:Buffer[],
+    timed?:lastModified,
+    ranged?:boolean
+};
+type httpRes = {
+    code:number,
+    headers:Buffer[],
+    body:bodyType,
+    time?:Date
+};
+ type bodyType = {
+    len:number,
+    read:()=>Promise<Buffer>,
+    close:()=>Promise<void>
+};
+
+type HttpRange = [number, number | null] | number;
+type bufferGen = AsyncGenerator<Buffer,void,void>;
+type lastModified ={
+    lastReq:Boolean,
+    clientVal:string
+};
+
+export {httpReq,httpRes,bodyType,HttpRange,bufferGen,lastModified};

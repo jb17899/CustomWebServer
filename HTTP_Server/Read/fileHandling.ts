@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
-import * as contentLen from "./contentLen"
 import * as range from "./ranged";
+import * as types from "../handlers/types";
+import HTTPError from '../handlers/Error';
 // interfaces used.
 // interface fileResult{
 //     bytesRead:number;
@@ -22,17 +23,17 @@ import * as range from "./ranged";
 //     close():Promise<void>,
 //     stat():Promise<fileStats>
 // };
-export async function serverStaticFile(path:string,ranged:boolean,headers:Buffer[]):Promise<contentLen.httpRes>{
+export async function serverStaticFile(path:string,headers:Buffer[],ranged?:boolean):Promise<types.httpRes>{
     let fp:null|fs.FileHandle = null;
     try{
-        let httpBody: contentLen.bodyType | undefined = undefined;
+        let httpBody: types.bodyType | undefined = undefined;
         fp = await fs.open(path,'r');
         const stat = await fp.stat();
         if(!stat.isFile()){
-            throw new contentLen.HTTPError(404,"not a regular file");
+            throw new HTTPError(404,"not a regular file");
         }
         const size = stat.size;
-        if(ranged){
+        if(ranged!== undefined && ranged){
             const val:range.HttpRange[] = range.parseByteRanges(headers);
             for(let c of val){
                 const start = c[0];
@@ -51,24 +52,25 @@ export async function serverStaticFile(path:string,ranged:boolean,headers:Buffer
             httpBody = await readerFromStaticFile(fp,size);
         }
         if (!httpBody) {
-            throw new contentLen.HTTPError(416, "No valid range or file to serve");
+            throw new HTTPError(416, "No valid range or file to serve");
         }
         fp = null;
         return {
             code:200,
             headers:[],
-            body:httpBody
+            body:httpBody,
+            time:(await fs.stat(path)).mtime
         };
     }
     catch(exc){
         console.log("Error"+exc);
-        throw new contentLen.HTTPError(404,"File not found");
+        throw new HTTPError(404,"File not found");
     }
     finally{
         fp?.close();
     }
 }
-async function readerFromStaticFile(fp:fs.FileHandle,size:number):Promise<contentLen.bodyType>{
+async function readerFromStaticFile(fp:fs.FileHandle,size:number):Promise<types.bodyType>{
     let got = 0;
     const buf = Buffer.allocUnsafe(65536);
     return {

@@ -1,2 +1,6 @@
-import * as stat from 'stat';
-const ts = Math.floor(stat.mtime.getTime() / 1000); 
+import * as fs from "fs/promises";
+export async function getLastModified(paths:string):Promise<Date>{
+    const val = await fs.stat(paths);
+    console.log(val.mtime);
+    return val.mtime;
+}

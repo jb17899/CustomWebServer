@@ -1,5 +1,5 @@
 import * as fs from 'fs/promises';
-import * as contentLen from './contentLen';
+import * as types from '../handlers/types';
 export type HttpRange = [number, number | null] | number;
 
 export function parseByteRanges(buf: null | Buffer[]): HttpRange[] {
@@ -39,7 +39,7 @@ export function parseByteRanges(buf: null | Buffer[]): HttpRange[] {
     }
     return htRange;
 }
-export async function readerFromStaticFile(fp:fs.FileHandle,start:number,end:number):Promise<contentLen.bodyType>{
+export async function readerFromStaticFile(fp:fs.FileHandle,start:number,end:number):Promise<types.bodyType>{
     let got = 0;
     const buf = Buffer.allocUnsafe(65536);
     return {
