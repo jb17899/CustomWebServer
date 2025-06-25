@@ -43,9 +43,6 @@ async function handleReq(req:types.httpReq):Promise<types.httpRes>{
     if(uri == '/echo'){
         resp = readerFromGen(countSheep());
     }
-    else if(uri == '/favicon.ico'){
-        throw new HTTPError(200,"not doing it");
-    }
     else{
         if(uri.startsWith("../")){
             throw new Error("Directory traversal attempt");
