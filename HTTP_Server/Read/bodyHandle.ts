@@ -3,6 +3,8 @@ import * as eventPromise from '../../TCP_echo/eventPromises';
 import * as practice from '../../TCP_echo/practice';
 import * as types from '../handlers/types';
 import { fieldGet } from '../handlers/getFields';
+import { serverStaticFile } from './fileHandling';
+import { handleReq } from './reqHandle';
 
 
 async function *readChunks(conn:eventPromise.TCPconn,buf:practice.DynBuf):types.bufferGen{
@@ -51,12 +53,12 @@ function readerFromGen(gen:types.bufferGen):types.bodyType{
 function parseDec(val:string):number{
     return parseInt(val,10);
 }
-function getHttpBody(conn:eventPromise.TCPconn,buf:practice.DynBuf,req:types.httpReq):types.bodyType{
+async function getHttpBody(conn:eventPromise.TCPconn,buf:practice.DynBuf,req:types.httpReq): Promise<types.bodyType|null> {
     let bodyLen:number = -1;
     const contentLen:null|Buffer = fieldGet(req.headers,'Content-Length');
+    console.log(contentLen);
     if(contentLen){
         bodyLen = parseDec(contentLen.toString('latin1'));
-        console.log(`Content-Length: ${bodyLen}`);
         if(isNaN(bodyLen)){
             throw new HTTPError(400,'Bad content Length');
         }
@@ -76,13 +78,15 @@ const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
         return readerFromGen(readChunks(conn,buf));
     }
     else{
-        // if(!bodyAllowed){
-        //     if(req.method == "HEAD"){
+        if(req.method == 'GET'){
+            if(req.uri.toString() == "/hell"){
+                const val = await handleReq(req);
+                return val.body;
+            }
+        }
 
-        //     }
-        // }
-        throw new HTTPError(501,'TODO');
     }
+    return null;
 }
 function readerFromConnLen(conn:eventPromise.TCPconn,buf:practice.DynBuf,bodyLen:number):types.bodyType{
     return {

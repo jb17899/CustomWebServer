@@ -1,4 +1,4 @@
-import * as contentLen from '../contentLen';
+import * as contentLen from '../main';
 import * as types from '../handlers/types';
 import * as path from 'path';
 import * as cache from '../Cache/cache';
@@ -37,11 +37,14 @@ function readerFromGen(gen:types.bufferGen):types.bodyType{
         }
     };
 }
-async function handleReq(req:types.httpReq,httpBody:types.bodyType):Promise<types.httpRes>{
+async function handleReq(req:types.httpReq):Promise<types.httpRes>{
     let resp:types.bodyType = contentLen.readerFromMemory(Buffer.from("")); // Default empty body
     const uri = req.uri.toString('latin1');
     if(uri == '/echo'){
         resp = readerFromGen(countSheep());
+    }
+    else if(uri == '/favicon.ico'){
+        throw new HTTPError(200,"not doing it");
     }
     else{
         if(uri.startsWith("../")){
@@ -55,15 +58,16 @@ async function handleReq(req:types.httpReq,httpBody:types.bodyType):Promise<type
         else{
             throw new Error("blocked");
         }
-        console.log(req,paths);
         if(req.timed?.lastReq!==false){
         const num = (await cache.getLastModified(paths)).toString();
-        console.log(num);
         if(num === req.timed?.clientVal){
             throw new HTTPError(301,"");
         }
         }
-        return fileHandling.serverStaticFile(paths,req.headers,req.ranged);
+        if(req.compressed!==null&&req.compressed?.compressed == true){
+            req.compressed.type = "text/html";
+        }
+        return fileHandling.serverStaticFile(paths,req.headers,req.ranged,req.compressed);
     }
     return {
         code:200,

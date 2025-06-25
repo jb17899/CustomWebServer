@@ -39,6 +39,7 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
         const msg:null|types.httpReq = check.cutMessage(buf);
         if(!msg){
             const data = await eventPromise.soRead(conn);
+            console.log(data);
             practice.pushBuffer(buf,data);
             if(data.length == 0 && buf.length == 0){
                 return;
@@ -48,9 +49,8 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
             }
             continue;
         }
-        console.log(msg.headers.toString());
-        const bodyReq:types.bodyType = getHttpBody(conn,buf,msg);
-        const res:types.httpRes = await handleReq(msg,bodyReq);
+        const bodyReq:types.bodyType|null = await getHttpBody(conn,buf,msg);
+        const res:types.httpRes = await handleReq(msg);
         res.headers.push(Buffer.from(`Last-Modified:${res.time}`));
         try{
         await httpWrite(conn,res);
@@ -59,7 +59,7 @@ async function serveClient(conn:eventPromise.TCPconn):Promise<void>{
         }
 
         await res.body.close();
-        while ((await bodyReq.read()).length > 0) {}
+        while ((await bodyReq!.read()).length > 0) {}
         }finally{
             res.body.close?.();
         }

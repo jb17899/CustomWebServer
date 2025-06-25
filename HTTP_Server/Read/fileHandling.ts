@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as range from "./ranged";
 import * as types from "../handlers/types";
 import HTTPError from '../handlers/Error';
+import * as comp from '../Compression';
 // interfaces used.
 // interface fileResult{
 //     bytesRead:number;
@@ -23,7 +24,7 @@ import HTTPError from '../handlers/Error';
 //     close():Promise<void>,
 //     stat():Promise<fileStats>
 // };
-export async function serverStaticFile(path:string,headers:Buffer[],ranged?:boolean):Promise<types.httpRes>{
+export async function serverStaticFile(path:string,headers:Buffer[],ranged?:boolean,compressed?:types.toCompress):Promise<types.httpRes>{
     let fp:null|fs.FileHandle = null;
     try{
         let httpBody: types.bodyType | undefined = undefined;
@@ -54,10 +55,18 @@ export async function serverStaticFile(path:string,headers:Buffer[],ranged?:bool
         if (!httpBody) {
             throw new HTTPError(416, "No valid range or file to serve");
         }
-        fp = null;
+        fp = null;let headerm:Buffer[]=[];
+        if(compressed != null && compressed.compressed == true){
+            httpBody = comp.enableCompression(compressed, httpBody);
+            headers = [
+                Buffer.from(`Content-Type:${compressed.type}`),
+                Buffer.from(`Content-Encoding: gzip`)
+            ];
+        }
+
         return {
             code:200,
-            headers:[],
+            headers:headerm,
             body:httpBody,
             time:(await fs.stat(path)).mtime
         };
@@ -70,7 +79,7 @@ export async function serverStaticFile(path:string,headers:Buffer[],ranged?:bool
         fp?.close();
     }
 }
-async function readerFromStaticFile(fp:fs.FileHandle,size:number):Promise<types.bodyType>{
+export async function readerFromStaticFile(fp:fs.FileHandle,size:number):Promise<types.bodyType>{
     let got = 0;
     const buf = Buffer.allocUnsafe(65536);
     return {

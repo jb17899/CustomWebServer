@@ -28,8 +28,8 @@ function parseHttpReq(buf:Buffer):types.httpReq{
         throw new Error("Fields are all empty.....");
     }
     const [method,uri,version] = parseReqLine(lines[index]);
-    var headers:Buffer[] = [];let timeReq:types.lastModified = {lastReq:false,clientVal:""};
-    const prefix:Buffer = Buffer.from("Content-Range");let len = prefix.length;const timed:Buffer = Buffer.from("If-Modified-Since");
+    var headers:Buffer[] = [];let timeReq:types.lastModified = {lastReq:false,clientVal:""};let compVal:types.toCompress = {compressed:false,encoding:[],type:""};
+    const prefix:Buffer = Buffer.from("Content-Range");let len = prefix.length;const timed:Buffer = Buffer.from("If-Modified-Since");const toBeCompressed:Buffer = Buffer.from("Accept-Encoding");let comLen:number = toBeCompressed.length;
     for(let i = index+1;i<lines.length-1;i++){
         let h:Buffer = lines[i];
         if(!validateHeader(h)){
@@ -42,10 +42,14 @@ function parseHttpReq(buf:Buffer):types.httpReq{
             timeReq.lastReq = true;
             timeReq.clientVal = h.subarray(timed.length+1).toString();
         }
+        if(h.subarray(0,comLen).equals(toBeCompressed)){
+            compVal.compressed = true;
+            compVal.encoding = h.subarray(comLen+1).toString().trim().split(',');
+        }
         headers.push(h);
     }
     return {
-        method:method,uri:uri,version:version,headers:headers,timed:timeReq,ranged:ranged
+        method:method,uri:uri,version:version,headers:headers,timed:timeReq,ranged:ranged,compressed:compVal
     };
 }
 function parseReqLine(line:Buffer):[string,Buffer,string]{

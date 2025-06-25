@@ -23,3 +23,10 @@ sender knows the amount of data that client buffer can take.sends that amount of
 3.Producer Consumer Problem
 POOLED BUFFERS
 can use pooled buffers for this.Large pool that contains buffers,when need to use them,take from it ,only if pool is empty,use it.
+
+
+FOR COMPRESSION
+
+produce-response|gzip-compress|chunk encode|write-to-socket
+
+as soon as compressed send it immediately instead of storing it.

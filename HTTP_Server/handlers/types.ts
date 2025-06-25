@@ -4,7 +4,8 @@ type httpReq = {
     version:string,
     headers:Buffer[],
     timed?:lastModified,
-    ranged?:boolean
+    ranged?:boolean,
+    compressed?:toCompress
 };
 type httpRes = {
     code:number,
@@ -24,5 +25,10 @@ type lastModified ={
     lastReq:Boolean,
     clientVal:string
 };
+type toCompress={
+    compressed:boolean,
+    encoding:Array<string>,
+    type?:string
+};
 
-export {httpReq,httpRes,bodyType,HttpRange,bufferGen,lastModified};
+export {httpReq,httpRes,bodyType,HttpRange,bufferGen,lastModified,toCompress};
