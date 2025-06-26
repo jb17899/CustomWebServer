@@ -30,7 +30,8 @@ A lightweight, custom-built HTTP server in Node.js that:
 | `/bundle.css` | (If implemented) Serves combined CSS files |
 `You can build your own routes and paths by modifying path.ts file and adding to files fields.`
 
-- chunked data format has been implemented only to send numbers using generators.If you want you can modify it to send data only in chunked format.
+- chunked data format has been implemented only to send numbers using generators.If you want you can modify it to send the entire data only in chunked format.
+- Also only html,css,js are supported have yet to support react.
 ---
 
 ## How to Run
