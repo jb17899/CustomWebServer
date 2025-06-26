@@ -28,7 +28,7 @@ A lightweight, custom-built HTTP server in Node.js that:
 | `/path/to/file` | Serves static file if exists and permitted |
 | `/bundle.js` | (If implemented) Serves combined JS files |
 | `/bundle.css` | (If implemented) Serves combined CSS files |
-`You can build your own routes and paths by modifying path.ts file`
+`You can build your own routes and paths by modifying path.ts file and adding to files fields.`
 
 ---
 
