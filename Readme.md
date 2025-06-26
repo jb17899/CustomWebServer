@@ -16,7 +16,7 @@ A lightweight, custom-built HTTP server in Node.js that:
 ✅ Conditional GET with Last-Modified checks  
 ✅ has got GET,POST,HEAD
 ✅ Simple cache integration  
-✅ Custom error handling
+✅ Custom Error Handling
 ✅ Added support for ranged requests
 ---
 
@@ -24,12 +24,13 @@ A lightweight, custom-built HTTP server in Node.js that:
 
 | Route | Description |
 |--------|-------------|
-| `/echo` | Streams numbers (e.g., 0, 100, 200, ..., 900) in chunks |
+| `/echo` | Streams numbers (e.g., 0, 100, 200, ..., 900) in chunks Built it for sending data in chunks|
 | `/path/to/file` | Serves static file if exists and permitted |
 | `/bundle.js` | (If implemented) Serves combined JS files |
 | `/bundle.css` | (If implemented) Serves combined CSS files |
 `You can build your own routes and paths by modifying path.ts file and adding to files fields.`
 
+- chunked data format has been implemented only to send numbers using generators.If you want you can modify it to send data only in chunked format.
 ---
 
 ## How to Run
@@ -57,6 +58,8 @@ Add ETag support
 Add logging middleware
 Improve MIME type detection
 Add HTTPS support
+
+Also has 
 
 
 
