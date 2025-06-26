@@ -77,15 +77,6 @@ const chunked = te && te.toString('latin1').trim().toLowerCase() === "chunked";
     else if(chunked){
         return readerFromGen(readChunks(conn,buf));
     }
-    else{
-        if(req.method == 'GET'){
-            if(req.uri.toString() == "/hell"){
-                const val = await handleReq(req);
-                return val.body;
-            }
-        }
-
-    }
     return null;
 }
 function readerFromConnLen(conn:eventPromise.TCPconn,buf:practice.DynBuf,bodyLen:number):types.bodyType{

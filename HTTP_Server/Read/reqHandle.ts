@@ -5,6 +5,7 @@ import * as cache from '../Cache/cache';
 import * as fileHandling from './fileHandling';
 import  HTTPError  from '../handlers/Error';
 import dotenv from 'dotenv';
+import {get} from './paths';
 dotenv.config();
 async function *countSheep():types.bufferGen{                              //implement freeing memory from here instead of GC.Could use return block to trigger finally block.
     try{
@@ -44,16 +45,20 @@ async function handleReq(req:types.httpReq):Promise<types.httpRes>{
         resp = readerFromGen(countSheep());
     }
     else{
+        if (uri === '/.well-known/appspecific/com.chrome.devtools.json'){
+            throw new HTTPError(404,"Not Found");
+        }
+        console.log("Request URI:" + uri.toString());
         if(uri.startsWith("../")){
             throw new Error("Directory traversal attempt");
         }
         let paths =process.env.HOME_DIRECTORY+path.dirname(uri);
-        if(uri == '/hell'){
-            let val = "val.html";
-            paths+=val;
+        if(paths.endsWith('/')){
+            paths = paths.slice(0,-1);
         }
-        else{
-            throw new Error("blocked");
+        paths = path.join(paths,get(uri));
+        if(get(uri) === undefined){
+            throw new HTTPError(404,"Not Found");
         }
         if(req.timed?.lastReq!==false){
         const num = (await cache.getLastModified(paths)).toString();
@@ -62,8 +67,31 @@ async function handleReq(req:types.httpReq):Promise<types.httpRes>{
         }
         }
         if(req.compressed!==null&&req.compressed?.compressed == true){
-            req.compressed.type = "text/html";
+            const val = get(uri);
+            if(val.endsWith('.html')){
+                req.compressed.type = "text/html";
+            }
+            else if(val.endsWith('.css')){
+                req.compressed.type = "text/css";
+            }
+            else if(val.endsWith('.js')){
+                req.compressed.type = "application/javascript";
+            }
+            else if(val.endsWith('.json')){
+                req.compressed.type = "application/json";
+            }
+            else if(val.endsWith('.txt')){
+                req.compressed.type = "text/plain";
+            }
+            else if(val.endsWith('.ico')){
+                req.compressed.type = "image/x-icon";
+            }
+            else if(val.endsWith('.jpg') || val.endsWith('.jpeg')){
+                req.compressed.type = "image/jpeg"; 
+            }
         }
+
+
         return fileHandling.serverStaticFile(paths,req.headers,req.ranged,req.compressed);
     }
     return {

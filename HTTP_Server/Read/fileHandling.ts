@@ -57,8 +57,9 @@ export async function serverStaticFile(path:string,headers:Buffer[],ranged?:bool
         }
         fp = null;let headerm:Buffer[]=[];
         if(compressed != null && compressed.compressed == true){
+            console.log("Compressing file");
             httpBody = comp.enableCompression(compressed, httpBody);
-            headers = [
+            headerm = [
                 Buffer.from(`Content-Type:${compressed.type}`),
                 Buffer.from(`Content-Encoding: gzip`)
             ];

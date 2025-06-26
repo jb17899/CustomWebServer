@@ -1,0 +1,35 @@
+body{
+    padding: 0px;
+    margin: 0px;
+    text-decoration: none;
+    font-size: 22px;
+    font-family:'Times New Roman', Times, serif;
+}
+header{
+    padding-left: 10%;
+    padding-top: 1%;
+    align-content: center;
+}
+
+.row{
+    display: flex;
+    flex-direction: row;
+    gap: 2%;
+    border: 2px solid;
+    justify-content: center;
+}
+.row a{
+    text-decoration: none;
+    font-weight: 600;
+}
+.boxes{
+    align-items: center;
+    height:50vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 35px;
+}
+.largeVal{
+    position: relative;
+}
