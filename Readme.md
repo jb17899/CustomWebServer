@@ -1,32 +1,65 @@
-# My First HTTP Server
+# My Custom HTTP Server
 
-A simple HTTP/1.1 server built from scratch using Node.js TCP sockets.
+A lightweight, custom-built HTTP server in Node.js that:
+- Serves static files securely (with directory traversal protection)
+- Supports streaming responses using async generators
+- Handles conditional requests (Last-Modified, 301 redirect)
+- Provides optional compression and range support
+- Demonstrates manual HTTP handling without external frameworks (like Express)
 
-✅ Supports basic HTTP request parsing  
-✅ Handles GET / POST methods  
-✅ Streams request and response bodies  
-✅ Supports persistent connections (HTTP/1.1 keep-alive)
+## Features
+
+✅ Secure static file serving  
+✅ Streaming generator-based responses (`/echo`)  
+✅ Directory traversal protection  
+✅ Compression-aware response handling  
+✅ Conditional GET with Last-Modified checks  
+✅ has got GET,POST,HEAD
+✅ Simple cache integration  
+✅ Custom error handling
+✅ Added support for ranged requests
+---
+
+## Example Routes
+
+| Route | Description |
+|--------|-------------|
+| `/echo` | Streams numbers (e.g., 0, 100, 200, ..., 900) in chunks |
+| `/path/to/file` | Serves static file if exists and permitted |
+| `/bundle.js` | (If implemented) Serves combined JS files |
+| `/bundle.css` | (If implemented) Serves combined CSS files |
+`You can build your own routes and paths by modifying path.ts file`
 
 ---
 
-## 📌 Features
-
-- **POST /echo**  
-  Replies with the exact body sent by the client.
-
-- **Default route**  
-  Replies with `Hello World.` for any URI except `/echo`.
-
-- **Persistent connections**  
-  Handles multiple requests over the same TCP connection (HTTP/1.1).
-
-- **Manual HTTP parsing**  
-  No frameworks like Express — you parse headers, bodies, and build responses manually.
-
----
-
-## 🛠 How to run
+## How to Run
 
 ```bash
-npm i
-npm run start
+# Install dependencies
+npm install
+
+# Run the server
+node your-server-file.js
+Development Notes
+Written using Node.js core modules (http, fs, path, stream, zlib)
+
+No Express or external web frameworks
+
+Uses dotenv for environment configuration (e.g. HOME_DIRECTORY)
+--
+## for .env
+Put-.
+
+HOME_DIRECTORY=/path/to/your/public/files
+
+## Future Enhancements
+Add ETag support
+Add logging middleware
+Improve MIME type detection
+Add HTTPS support
+
+
+
+
+
+
